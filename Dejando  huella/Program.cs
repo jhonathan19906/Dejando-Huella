@@ -1,0 +1,357 @@
+﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+
+namespace Instituto 
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+
+            Console.WriteLine("Listo");
+        }
+
+        // Usar este método para llenar la base de datos con data de prueba
+        static void SeedDatabase()
+        {
+            using (ApplicationDbContext context = new ApplicationDbContext())
+            {
+                context.Database.Migrate();
+
+                if (context.Instituciones.Any())
+                {
+                    // Si ya hay data, no hacer nada.
+                    return;
+                }
+
+                var institucion1 = new Institucion();
+                institucion1.Nombre = "Institucion 1";
+
+                var estudiante1 = new Estudiante();
+                estudiante1.Nombre = "Omar";
+                estudiante1.Edad = 999;
+                estudiante1.Detalles = new EstudianteDetalle() { Becado = true, CategoriaDePago = 1 };
+
+                var estudiante2 = new Estudiante();
+                estudiante2.Nombre = "Anita";
+                estudiante2.Edad = 15;
+                estudiante2.Detalles = new EstudianteDetalle() { Becado = false, Carrera = "Ingeniería de Software", CategoriaDePago = 1 };
+
+
+                var estudiante3 = new Estudiante();
+                estudiante3.Nombre = "Jose";
+                estudiante3.Edad = 25;
+                estudiante3.Detalles = new EstudianteDetalle() { Becado = true, Carrera = "Licenciatura en Derecho", CategoriaDePago = 2 };
+
+
+                var direccion1 = new Direccion();
+                direccion1.Calle = "La bahia";
+                estudiante1.Direccion = direccion1;
+
+                var curso1 = new Curso();
+                curso1.Nombre = "Matematicas";
+
+                var curso2 = new Curso();
+                curso2.Nombre = "Desarrollo de software";
+
+                var institucion2 = new Institucion();
+                institucion2.Nombre = "Institucion 2";
+
+                institucion1.Estudiantes.Add(estudiante1);
+                institucion1.Estudiantes.Add(estudiante2);
+
+                institucion2.Estudiantes.Add(estudiante3);
+
+                context.Add(institucion1);
+                context.Add(institucion2);
+                context.Add(curso1);
+                context.Add(curso2);
+
+                context.SaveChanges();
+
+                var estudianteCurso = new EstudianteCurso();
+                estudianteCurso.Activo = true;
+                estudianteCurso.CursoId = curso1.Id;
+                estudianteCurso.EstudianteId = estudiante1.Id;
+
+                var estudianteCurso2 = new EstudianteCurso();
+                estudianteCurso2.Activo = false;
+                estudianteCurso2.CursoId = curso1.Id;
+                estudianteCurso2.EstudianteId = estudiante2.Id;
+
+                context.Add(estudianteCurso);
+                context.Add(estudianteCurso2);
+                context.SaveChanges();
+            }
+        }
+
+        static void EjemploInsertarEstudiante()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiante = new Estudiante();
+                estudiante.Nombre = "Anita";
+                context.Add(estudiante);
+                context.SaveChanges();
+            }
+        }
+
+        static void EjemploActualizarEstudianteModeloConectado()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiantes = context.Estudiantes.Where(x => x.Nombre == "Anita").ToList();
+
+                estudiantes[0].Nombre += " Apellido";
+
+                context.SaveChanges();
+
+            }
+        }
+
+        static void EjemploActualizarEstudianteModeloDesconectado(Estudiante estudiante)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                context.Entry(estudiante).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                context.SaveChanges();
+            }
+        }
+
+        static void EjemploRemoverEstudianteModeloConectado()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiante = context.Estudiantes.FirstOrDefault();
+                context.Remove(context);
+                context.SaveChanges();
+            }
+        }
+
+        static void EjemploRemoverEstudianteModeloDesonectado(Estudiante estudiante)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                context.Entry(estudiante).State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
+                context.SaveChanges();
+            }
+        }
+
+        static void AgregarModeloUnoAUnoConectado()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                // Aquí agregamos un nuevo estudiante y su dirección
+                var estudiante = new Estudiante();
+                estudiante.Nombre = "Anita";
+                estudiante.Edad = 99;
+
+                var direccion = new Direccion();
+                direccion.Calle = "La bahia";
+                estudiante.Direccion = direccion;
+
+                context.Add(estudiante);
+                context.SaveChanges();
+            }
+        }
+
+        static void AgregarModeloUnoAUnoModeloDesconectado(Direccion direccion)
+        {
+            //  llena la direccion del estudiante
+            using (var context = new ApplicationDbContext())
+            {
+                context.Entry(direccion).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                context.SaveChanges();
+            }
+
+        }
+
+        static void TraerDataRelacionada()
+        {
+            // Utilizamos include para indicar que queremos traer los estudiantes y sus direcciones
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiantes = context.Estudiantes.Include(x => x.Direccion).ToList();
+            }
+        }
+
+        static void AgregarModeloMuchosAMuchosModeloDesconectado(Estudiante estudiante)
+        {
+            // el campo estudiante se va llenando 
+            using (var context = new ApplicationDbContext())
+            {
+                context.Add(estudiante);
+                context.SaveChanges();
+            }
+        }
+
+        static void TraerDataRelacionadaUnoAMuchos()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+
+                var institucionesEstudiantes1 = context.Instituciones.Where(x => x.Id == 1).Include(x => x.Estudiantes).ToList();
+                var institucionesEstudiantes = context.Instituciones.Where(x => x.Id == 1)
+                    .Select(x => new { Institucion = x, Estudiantes = x.Estudiantes.Where(e => e.Edad > 18).ToList() }).ToList();
+
+            }
+        }
+
+        static void InsertarDataRelacionadaMuchosAMuchos()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiante = context.Estudiantes.FirstOrDefault();
+                var curso = context.Cursos.FirstOrDefault();
+
+                var estudianteCurso = new EstudianteCurso();
+
+                estudianteCurso.CursoId = curso.Id;
+                estudianteCurso.EstudianteId = estudiante.Id;
+                estudianteCurso.Activo = true;
+
+                context.Add(estudianteCurso);
+                context.SaveChanges();
+            }
+        }
+
+        static void TraerDataRelacionadaMuchosAMuchos()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var curso = context.Cursos.Where(x => x.Id == 1).Include(x => x.EstudiantesCursos)
+                    .ThenInclude(y => y.Estudiante).FirstOrDefault();
+            }
+        }
+
+        static void StringInterpolationEnEF2()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var nombre = "'jhona' or 1=1";
+                // Así evitamos SQL Injection
+                var estudiante = context.Estudiantes.FromSql($"select * from Estudiantes where Nombre = {nombre}").ToList();
+            }
+        }
+
+        static void FiltroPorTipo()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                // El filtro definido en el DbContext.cs 
+                var estudiantesCursos = context.EstudiantesCursos.ToList();
+            }
+        }
+
+        static void BorradoSuave()
+        {
+            // El estudiante no será borrado 
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiante = context.Estudiantes.FirstOrDefault();
+                context.Remove(estudiante);
+                context.SaveChanges();
+            }
+        }
+
+        static void EjemploConcurrencyCheck()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var est = context.Estudiantes.FirstOrDefault();
+                est.Nombre += " 2";
+                est.Edad += 1;
+                context.SaveChanges();
+            }
+        }
+
+        static void FuncionEscalarEnEF()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiantes = context.Estudiantes
+                    .Where(x => ApplicationDbContext.Cantidad_De_Cursos_Activos(x.Id) > 0).ToList();
+            }
+        }
+
+        static void FuncionalidadTableSplitting()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var estudiantes = context.Estudiantes.Include(x => x.Detalles).ToList();
+            }
+        }
+    }
+
+    class Institucion
+    {
+        public Institucion()
+        {
+            Estudiantes = new List<Estudiante>();
+        }
+        public int Id { get; set; }
+        public string Nombre { get; set; }
+        public List<Estudiante> Estudiantes { get; set; }
+    }
+
+    class Estudiante
+    {
+        public int Id { get; set; }
+        [ConcurrencyCheck]
+        public string Nombre { get; set; }
+        public int Edad { get; set; }
+        public int InstitucionId { get; set; }
+        public bool EstaBorrado { get; set; }
+
+        private string _Apellido;
+
+        public string Apellido
+        {
+            get { return _Apellido; }
+            set
+            {
+                _Apellido = value.ToUpper();
+            }
+        }
+        public Direccion Direccion { get; set; }
+        public List<EstudianteCurso> EstudiantesCursos { get; set; }
+        public EstudianteDetalle Detalles { get; set; }
+    }
+
+    class EstudianteDetalle
+    {
+        public int Id { get; set; }
+        public bool Becado { get; set; }
+        public string Carrera { get; set; }
+        public int CategoriaDePago { get; set; }
+        public Estudiante Estudiante { get; set; }
+    }
+
+    class Direccion
+    {
+        public int Id { get; set; }
+        public string Calle { get; set; }
+        public int EstudianteId { get; set; }
+    }
+
+    class Curso
+    {
+        public int Id { get; set; }
+        [StringLength(100)]
+        public string Nombre { get; set; }
+        public List<EstudianteCurso> EstudiantesCursos { get; set; }
+    }
+
+    class EstudianteCurso
+    {
+        public int EstudianteId { get; set; }
+        public int CursoId { get; set; }
+        public bool Activo { get; set; }
+        public Estudiante Estudiante { get; set; }
+        public Curso Curso { get; set; }
+    }
+}
